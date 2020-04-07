@@ -25,13 +25,13 @@ app.get('/bad', (request, response) => {
 
 app.get('/weather', weatherHandler);
 
-function weatherHandler(request, response) {
-  const weatherData = require('./data/darksky.json');
-  const time = new Date(request.query.time);
-  const summary = request.query.summary;
-  const forecast = new Forecast(time, summary)
-  response.send(forecast);
-}
+// function weatherHandler(request, response) {
+//   const weatherData = require('./data/darksky.json');
+//   const time = new Date(request.query.time);
+//   const summary = request.query.summary;
+//   const forecast = new Forecast(time, summary)
+//   response.send(forecast);
+// }
 
 // Add /location route
 app.get('/location', locationHandler);
@@ -69,8 +69,8 @@ function notFoundHandler(request, response) {
 }
 
 function Location(city, geoData) {
-  this.search_query = city; // "cedar rapids"
-  this.formatted_query = geoData[0].display_name; // "Cedar Rapids, Iowa"
+  this.search_query = city;
+  this.formatted_query = geoData[0].display_name;
   this.latitude = parseFloat(geoData[0].lat);
   this.longitude = parseFloat(geoData[0].lon);
 }
