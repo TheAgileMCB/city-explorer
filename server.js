@@ -23,8 +23,14 @@ app.get('/bad', (request, response) => {
   throw new Error('oops');
 });
 
-app.get('/weather', (request, response) => {
-  response.send('Weather.');
+app.get('/weather', weatherHandler);
+
+function weatherHandler(request, response) {
+  const weatherData = require('./data/darksky.json');
+  const time = new Date(request.query.time);
+  const  summary = request.query.summary;
+  const forecast = new weatherData(time, summary)
+  response.send(forecast);
 });
 
 // Add /location route
