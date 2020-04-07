@@ -1,2 +1,3 @@
-# city-explorer
-City Explorer API lab for Intermediate Coding 301
+# City Explorer Front-End
+
+<https://codefellows.github.io/code-301-guide/curriculum/city-explorer-app/front-end/>
