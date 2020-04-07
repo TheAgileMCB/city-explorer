@@ -16,14 +16,11 @@ app.use(cors()); // Middleware
 
 app.get('/', (request, response) => {
   response.send('City Explorer Goes Here');
+  // response.send(express.static('public'));
 });
 
 app.get('/bad', (request, response) => {
   throw new Error('oops');
-});
-
-app.get('/paypal', (request, response) => {
-  response.send(process.env.PAYPAL_URL);
 });
 
 app.get('/weather', (request, response) => {
