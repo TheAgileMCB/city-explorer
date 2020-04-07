@@ -23,9 +23,19 @@ app.get('/bad', (request, response) => {
   throw new Error('oops');
 });
 
-app.get('/weather', (request, response) => {
-  response.send('Weather.');
-});
+app.get('/weather', weatherHandler);
+
+function weatherHandler (request, reponse) {
+  const weatherData = require('./data/darksky.json');
+  // TODO: pull lat/lon out of request.query
+  console.log(request.query);
+  const weatherResults = [];
+  weatherData.daily.data.forEach(dailyWeather => {
+    weatherResults.push (new Weather(dailyWeather));
+  });
+  response.send(weatherResults);
+
+}
 
 // Add /location route
 app.get('/location', locationHandler);
@@ -60,6 +70,11 @@ function notFoundHandler(request, response) {
   response.status(404).json({
     notFound: true,
   });
+}
+
+function Weather(weatherData) {
+  this.forecast = weatherData.summary;
+  this.time = new Date(weatherData.time * 1000);
 }
 
 function Location(city, geoData) {
