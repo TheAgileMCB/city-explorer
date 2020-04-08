@@ -26,15 +26,33 @@ app.get('/bad', () => {
 
 app.get('/weather', weatherHandler);
 
-function weatherHandler (request, response) {
-  const weatherData = require('./data/darksky.json');
-  // TODO: pull lat/lon out of request.query
-  console.log(request.query);
-  const weatherResults = [];
-  weatherData.daily.data.forEach(dailyWeather => {
-    weatherResults.push (new Weather(dailyWeather));
-  });
-  response.send(weatherResults);
+// function weatherHandler (request, response) {
+//   const weatherData = require('./data/darksky.json');
+//   // TODO: pull lat/lon out of request.query
+//   console.log(request.query);
+//   const weatherResults = [];
+//   weatherData.daily.data.forEach(dailyWeather => {
+//     weatherResults.push (new Weather(dailyWeather));
+//   });
+//   response.send(weatherResults);
+
+// }
+
+function weatherHandler(request, response) {
+  const weatherCity = request.query.search_query;
+  const weatherURL = 'http://api.weatherbit.io/v2.0/current';
+  superagent.get(weatherURL)
+    .query({
+      city: weatherCity,
+      key: process.env.WEATHER_KEY,
+    })
+    .then(weatherResponse => {
+      let weatherData = weatherResponse.body;
+      let dailyResults = weatherData.data.map(dailyWeather => {
+        return new Weather(dailyWeather);
+      });
+      response.send(dailyResults);
+    });
 
 }
 
@@ -57,6 +75,10 @@ function locationHandler(request, response) {
       console.log(geoData);
       const location = new Location(city, geoData);
       response.send(location);
+    })
+    .catch(error => {
+      console.log(error);
+      errorHandler(error, request, response);
     });
 
 }
@@ -86,8 +108,9 @@ function notFoundHandler(request, response) {
 }
 
 function Weather(weatherData) {
-  this.forecast = weatherData.summary;
-  this.time = new Date(weatherData.time * 1000);
+  this.search_query = weatherData.city_name;
+  this.forecast = weatherData.weather.description;
+  this.time = new Date(weatherData.ob_time);
 }
 
 function Location(city, geoData) {
