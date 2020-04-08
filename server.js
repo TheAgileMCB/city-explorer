@@ -40,11 +40,13 @@ app.get('/weather', weatherHandler);
 
 function weatherHandler(request, response) {
   const weatherCity = request.query.search_query;
-  const weatherURL = 'http://api.weatherbit.io/v2.0/current';
+  const weatherURL = 'http://api.weatherbit.io/v2.0/forecast/daily';
   superagent.get(weatherURL)
     .query({
       city: weatherCity,
-      key: process.env.WEATHER_KEY,
+      key: process.env.WEATHER_KEY
+      // lat: latitude,
+      // lon: longitude
     })
     .then(weatherResponse => {
       let weatherData = weatherResponse.body;
@@ -110,7 +112,7 @@ function notFoundHandler(request, response) {
 function Weather(weatherData) {
   this.search_query = weatherData.city_name;
   this.forecast = weatherData.weather.description;
-  this.time = new Date(weatherData.ob_time);
+  this.time = weatherData.valid_date;
 }
 
 function Location(city, geoData) {
