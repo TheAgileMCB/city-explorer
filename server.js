@@ -21,20 +21,40 @@ app.get('/', (request, response) => {
 });
 
 app.get('/bad', () => {
-  throw new Error('oops');
+  throw new Error('Sorry! Something went wrong.');
 });
 
 app.get('/weather', weatherHandler);
 
-function weatherHandler (request, response) {
-  const weatherData = require('./data/darksky.json');
-  // TODO: pull lat/lon out of request.query
-  console.log(request.query);
-  const weatherResults = [];
-  weatherData.daily.data.forEach(dailyWeather => {
-    weatherResults.push (new Weather(dailyWeather));
-  });
-  response.send(weatherResults);
+// function weatherHandler (request, response) {
+//   const weatherData = require('./data/darksky.json');
+//   // TODO: pull lat/lon out of request.query
+//   console.log(request.query);
+//   const weatherResults = [];
+//   weatherData.daily.data.forEach(dailyWeather => {
+//     weatherResults.push (new Weather(dailyWeather));
+//   });
+//   response.send(weatherResults);
+
+// }
+
+function weatherHandler(request, response) {
+  const weatherCity = request.query.search_query;
+  const weatherURL = 'http://api.weatherbit.io/v2.0/forecast/daily';
+  superagent.get(weatherURL)
+    .query({
+      city: weatherCity,
+      key: process.env.WEATHER_KEY
+      // lat: latitude,
+      // lon: longitude
+    })
+    .then(weatherResponse => {
+      let weatherData = weatherResponse.body;
+      let dailyResults = weatherData.data.map(dailyWeather => {
+        return new Weather(dailyWeather);
+      });
+      response.send(dailyResults);
+    });
 
 }
 
@@ -43,33 +63,27 @@ app.get('/location', locationHandler);
 
 // Route Handler
 function locationHandler(request, response) {
-  const geoData = require('./data/geo.json');
   const city = request.query.city;
-  const location = new Location(city, geoData);
-  response.send(location);
+
+  const url = 'https://us1.locationiq.com/v1/search.php';
+  superagent.get(url)
+    .query({
+      key: process.env.GEO_KEY,
+      q: city,
+      format: 'json'
+    })
+    .then(locationResponse => {
+      let geoData = locationResponse.body;
+      console.log(geoData);
+      const location = new Location(city, geoData);
+      response.send(location);
+    })
+    .catch(error => {
+      console.log(error);
+      errorHandler(error, request, response);
+    });
+
 }
-
-app.get('/location', locationHandler);
-
-// Route Handler
-// function locationHandler(request, response) {
-//   const city = request.query.city;
-
-//   const url = 'https://us1.locationiq.com/v1/search.php';
-//   superagent.get(url)
-//     .query({
-//       key: process.env.GEO_KEY,
-//       q: city,
-//       format: 'json'
-//     })
-//     .then(locationResponse => {
-//       let geoData = locationResponse.body;
-//       console.log(geoData);
-//       const location = new Location(city, geoData);
-//       response.send(location);
-//     });
-
-// }
 
 // Has to happen after everything else
 app.use(notFoundHandler);
@@ -96,8 +110,9 @@ function notFoundHandler(request, response) {
 }
 
 function Weather(weatherData) {
-  this.forecast = weatherData.summary;
-  this.time = new Date(weatherData.time * 1000);
+  this.search_query = weatherData.city_name;
+  this.forecast = weatherData.weather.description;
+  this.time = weatherData.valid_date;
 }
 
 function Location(city, geoData) {
