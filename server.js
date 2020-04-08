@@ -7,6 +7,7 @@ dotenv.config();
 // Application Dependencies
 const express = require('express');
 const cors = require('cors');
+const superagent = require('superagent');
 
 // Application Setup
 const PORT = process.env.PORT;
@@ -19,13 +20,23 @@ app.get('/', (request, response) => {
   // response.send(express.static('public'));
 });
 
-app.get('/bad', (request, response) => {
+app.get('/bad', () => {
   throw new Error('oops');
 });
 
-app.get('/weather', (request, response) => {
-  response.send('Weather.');
-});
+app.get('/weather', weatherHandler);
+
+function weatherHandler (request, response) {
+  const weatherData = require('./data/darksky.json');
+  // TODO: pull lat/lon out of request.query
+  console.log(request.query);
+  const weatherResults = [];
+  weatherData.daily.data.forEach(dailyWeather => {
+    weatherResults.push (new Weather(dailyWeather));
+  });
+  response.send(weatherResults);
+
+}
 
 // Add /location route
 app.get('/location', locationHandler);
@@ -37,6 +48,28 @@ function locationHandler(request, response) {
   const location = new Location(city, geoData);
   response.send(location);
 }
+
+app.get('/location', locationHandler);
+
+// Route Handler
+// function locationHandler(request, response) {
+//   const city = request.query.city;
+
+//   const url = 'https://us1.locationiq.com/v1/search.php';
+//   superagent.get(url)
+//     .query({
+//       key: process.env.GEO_KEY,
+//       q: city,
+//       format: 'json'
+//     })
+//     .then(locationResponse => {
+//       let geoData = locationResponse.body;
+//       console.log(geoData);
+//       const location = new Location(city, geoData);
+//       response.send(location);
+//     });
+
+// }
 
 // Has to happen after everything else
 app.use(notFoundHandler);
@@ -60,6 +93,11 @@ function notFoundHandler(request, response) {
   response.status(404).json({
     notFound: true,
   });
+}
+
+function Weather(weatherData) {
+  this.forecast = weatherData.summary;
+  this.time = new Date(weatherData.time * 1000);
 }
 
 function Location(city, geoData) {
