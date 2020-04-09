@@ -76,6 +76,7 @@ function locationHandler(request, response) {
 app.get('/trails', trailHandler);
 
 function trailHandler(request, response) {
+  console.log(request);
   // const weatherCity = request.query.search_query;
   const trailURL = 'https://www.hikingproject.com/data/get-trails';
   superagent.get(trailURL)
@@ -139,11 +140,11 @@ function Trail (trailData) {
   this.location = trailData.location;
   this.length = trailData.length;
   this.stars = trailData.stars;
-  this.starVotes = trailData.starVotes;
+  this.star_votes = trailData.starVotes;
   this.summary = trailData.summary;
-  this.trailPage = trailData.url;
+  this.trail_url = trailData.url;
   this.conditions = trailData.conditionDetails;
-  this.conditionDate = trailData.conditionDate;
+  this.condition_date = trailData.conditionDate.toDateString();
 }
 
 // function Yelp
