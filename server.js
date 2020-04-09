@@ -1,13 +1,22 @@
 'use strict';
 
 // Load Environment Variables from the .env file
-const dotenv = require('dotenv')
+const dotenv = require('dotenv');
 dotenv.config();
 
 // Application Dependencies
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
+const pg = require('pg');
+
+// Database connection setup
+if (!process.env.DATABASE_URL) {
+  throw 'Missing DATABASE_URL';
+}
+
+const client = new pg.Client(process.env.DATABASE_URL);
+client.on('error', err => { throw err; });
 
 // Application Setup
 const PORT = process.env.PORT;
@@ -17,7 +26,6 @@ app.use(cors()); // Middleware
 
 app.get('/', (request, response) => {
   response.send('City Explorer Goes Here');
-  // response.send(express.static('public'));
 });
 
 app.get('/bad', () => {
@@ -33,8 +41,6 @@ function weatherHandler(request, response) {
     .query({
       city: weatherCity,
       key: process.env.WEATHER_KEY
-      // lat: latitude,
-      // lon: longitude
     })
     .then(weatherResponse => {
       let weatherData = weatherResponse.body;
@@ -43,16 +49,53 @@ function weatherHandler(request, response) {
       });
       response.send(dailyForecast);
     });
-
+    
 }
 
 // Add /location route
 app.get('/location', locationHandler);
 
-// Route Handler
-function locationHandler(request, response) {
-  const city = request.query.city;
+// const locatiionCache = {
 
+// };
+
+function getLocationFromCache(city) {
+  const SQL = `SELECT * FROM locations WHERE search_query = $1;`;
+  let values = [city]
+  return client.query(SQL, values)
+    .then(results => {
+      return results;
+    })
+    .catch(error => {
+      console.log(error);
+      errorHandler(error, request, response);
+    });
+}
+
+function setLocationInCache(city, location) {
+  let setSQL = `INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4) RETURNING *;`;
+  // let {search_query, formatted_query, latitude, longitude} = location
+  let values = [location.search_query, location.formatted_query, location.latitude, location.longitude];
+  console.log('location cache updated', locationCache);
+  return client.query(setSQL, values)
+  .then (results => {
+    console.log(results)
+    return results;
+  })
+  .catch(error => {
+    console.log(error);
+  });
+};
+
+// Route Handler
+async function locationHandler(request, response) {
+  const city = request.query.city;
+  const locationFromCache = await getLocationFromCache(city);
+  console.log(locationFromCache);
+  if (locationFromCache.rowCount) {
+    response.send(locationFromCache.rows);
+    return;
+  }
   const url = 'https://us1.locationiq.com/v1/search.php';
   superagent.get(url)
     .query({
@@ -62,26 +105,24 @@ function locationHandler(request, response) {
     })
     .then(locationResponse => {
       let geoData = locationResponse.body;
-      console.log(geoData);
+
       const location = new Location(city, geoData);
-      response.send(location);
+      setLocationInCache(city, location);
+      response.send(city, location);
     })
     .catch(error => {
       console.log(error);
       errorHandler(error, request, response);
     });
-
 }
 
 app.get('/trails', trailHandler);
 
 function trailHandler(request, response) {
   console.log(request);
-  // const weatherCity = request.query.search_query;
   const trailURL = 'https://www.hikingproject.com/data/get-trails';
   superagent.get(trailURL)
     .query({
-      // city: weatherCity,
       key: process.env.TRAIL_KEY,
       lat: request.query.latitude,
       lon: request.query.longitude
@@ -94,7 +135,7 @@ function trailHandler(request, response) {
       });
       response.send(availableTrails);
     });
-
+    
 }
 
 
@@ -104,7 +145,7 @@ app.use(notFoundHandler);
 app.use(errorHandler); // Error Middleware
 
 // Make sure the server is listening for requests
-app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
+// app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
 
 // Helper Functions
 
@@ -135,7 +176,7 @@ function Location(city, geoData) {
   this.longitude = parseFloat(geoData[0].lon);
 }
 
-function Trail (trailData) {
+function Trail(trailData) {
   this.name = trailData.name;
   this.location = trailData.location;
   this.length = trailData.length;
@@ -144,8 +185,17 @@ function Trail (trailData) {
   this.summary = trailData.summary;
   this.trail_url = trailData.url;
   this.conditions = trailData.conditionDetails;
-  this.condition_date = trailData.conditionDate.toDateString();
+  this.condition_date = new Date(trailData.conditionDate).toDateString();
 }
+
+client.connect()
+  .then(() => {
+    console.log('Database connected.');
+    app.listen(PORT, () => console.log(`Listening on ${PORT}`));
+  })
+  .catch(error => {
+    throw `Something went wrong: ${error}`;
+  });
 
 // function Yelp
 
