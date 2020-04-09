@@ -26,18 +26,6 @@ app.get('/bad', () => {
 
 app.get('/weather', weatherHandler);
 
-// function weatherHandler (request, response) {
-//   const weatherData = require('./data/darksky.json');
-//   // TODO: pull lat/lon out of request.query
-//   console.log(request.query);
-//   const weatherResults = [];
-//   weatherData.daily.data.forEach(dailyWeather => {
-//     weatherResults.push (new Weather(dailyWeather));
-//   });
-//   response.send(weatherResults);
-
-// }
-
 function weatherHandler(request, response) {
   const weatherCity = request.query.search_query;
   const weatherURL = 'http://api.weatherbit.io/v2.0/forecast/daily';
@@ -50,10 +38,10 @@ function weatherHandler(request, response) {
     })
     .then(weatherResponse => {
       let weatherData = weatherResponse.body;
-      let dailyResults = weatherData.data.map(dailyWeather => {
+      let dailyForecast = weatherData.data.map(dailyWeather => {
         return new Weather(dailyWeather);
       });
-      response.send(dailyResults);
+      response.send(dailyForecast);
     });
 
 }
@@ -85,6 +73,31 @@ function locationHandler(request, response) {
 
 }
 
+app.get('/trails', trailHandler);
+
+function trailHandler(request, response) {
+  console.log(request);
+  // const weatherCity = request.query.search_query;
+  const trailURL = 'https://www.hikingproject.com/data/get-trails';
+  superagent.get(trailURL)
+    .query({
+      // city: weatherCity,
+      key: process.env.TRAIL_KEY,
+      lat: request.query.latitude,
+      lon: request.query.longitude
+    })
+    .then(trailResponse => {
+      let trailData = trailResponse.body;
+      let availableTrails = trailData.trails.map(trailStats => {
+        console.log(trailData);
+        return new Trail(trailStats);
+      });
+      response.send(availableTrails);
+    });
+
+}
+
+
 // Has to happen after everything else
 app.use(notFoundHandler);
 // Has to happen after the error might have occurred
@@ -112,7 +125,7 @@ function notFoundHandler(request, response) {
 function Weather(weatherData) {
   this.search_query = weatherData.city_name;
   this.forecast = weatherData.weather.description;
-  this.time = weatherData.valid_date;
+  this.time = new Date(weatherData.ts * 1000).toDateString();
 }
 
 function Location(city, geoData) {
@@ -121,3 +134,19 @@ function Location(city, geoData) {
   this.latitude = parseFloat(geoData[0].lat);
   this.longitude = parseFloat(geoData[0].lon);
 }
+
+function Trail (trailData) {
+  this.name = trailData.name;
+  this.location = trailData.location;
+  this.length = trailData.length;
+  this.stars = trailData.stars;
+  this.star_votes = trailData.starVotes;
+  this.summary = trailData.summary;
+  this.trail_url = trailData.url;
+  this.conditions = trailData.conditionDetails;
+  this.condition_date = trailData.conditionDate.toDateString();
+}
+
+// function Yelp
+
+// function Movie
