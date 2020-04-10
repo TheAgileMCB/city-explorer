@@ -8,16 +8,16 @@ function yelpHandler(request, response) {
   console.log(request.query);
   const lat = request.query.latitude;
   const lon = request.query.longitude;
+  // const restaurants = request.query.categories=restaurants;
   const yelpURL = 'https://api.yelp.com/v3/businesses/search';
   superagent.get(yelpURL)
     .set('Authorization', 'Bearer ' + process.env.YELP_KEY)
     .query({
       latitude: lat,
-      longitude: lon
-      // key: process.env.YELP_KEY
+      longitude: lon,
+      categories: 'restaurants'
     })
     .then (yelpResponse => {
-
       let yelpData = yelpResponse.body;
       let businesses = yelpData.businesses.map(businessInfo => {
         return new Business(businessInfo);
