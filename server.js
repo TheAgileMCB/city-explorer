@@ -48,54 +48,62 @@ function weatherHandler(request, response) {
         return new Weather(dailyWeather);
       });
       response.send(dailyForecast);
+    })
+    .catch(error => {
+      console.log(error);
+      errorHandler('No windows. Cannot see the weather', error);
     });
-    
 }
 
 // Add /location route
 app.get('/location', locationHandler);
 
-// const locatiionCache = {
-
-// };
-
 function getLocationFromCache(city) {
-  const SQL = `SELECT * FROM locations WHERE search_query = $1;`;
-  let values = [city]
-  return client.query(SQL, values)
-    .then(results => {
-      return results;
+  const SQL = `
+  SELECT *
+  FROM Locations
+  WHERE search_query = $1
+  LIMIT 1
+  `;
+  const parameters = [city];
+
+  return client.query(SQL, parameters);
+}
+
+function setLocationInCache(location) {
+  const { search_query, formatted_query, latitude, longitude } = location;
+  const SQL = `
+  INSERT INTO Locations (search_query, formatted_query, latitude, longitude)
+  VALUES ($1, $2, $3, $4)
+  -- RETURNING *
+  `;
+  const parameters = [search_query, formatted_query, latitude, longitude];
+
+  // returns a promise!
+  return client.query(SQL, parameters)
+    .then(result => {
+      console.log('Cache Location', result);
     })
-    .catch(error => {
-      console.log(error);
-      errorHandler(error, request, response);
+    .catch(err => {
+      console.error('Failed to cache location', err);
     });
 }
 
-function setLocationInCache(city, location) {
-  let setSQL = `INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4) RETURNING *;`;
-  // let {search_query, formatted_query, latitude, longitude} = location
-  let values = [location.search_query, location.formatted_query, location.latitude, location.longitude];
-  console.log('location cache updated', locationCache);
-  return client.query(setSQL, values)
-  .then (results => {
-    console.log(results)
-    return results;
-  })
-  .catch(error => {
-    console.log(error);
-  });
-};
-
 // Route Handler
-async function locationHandler(request, response) {
+function locationHandler(request, response) {
   const city = request.query.city;
-  const locationFromCache = await getLocationFromCache(city);
-  console.log(locationFromCache);
-  if (locationFromCache.rowCount) {
-    response.send(locationFromCache.rows);
-    return;
-  }
+  getLocationFromCache(city, response)
+    .then(result => {
+      let {rowCount, rows} = result;
+      if (rowCount > 0) {
+        response.send(rows[0]);
+      } else {
+        return getLocationFromApi(city, response);
+      }
+    });
+}
+
+function getLocationFromApi(city, response) {
   const url = 'https://us1.locationiq.com/v1/search.php';
   superagent.get(url)
     .query({
@@ -107,19 +115,23 @@ async function locationHandler(request, response) {
       let geoData = locationResponse.body;
 
       const location = new Location(city, geoData);
-      setLocationInCache(city, location);
-      response.send(city, location);
+
+      setLocationInCache(location, response)
+        .then(() => {
+          console.log('Data cached!');
+          response.send(location);
+        });
     })
     .catch(error => {
       console.log(error);
-      errorHandler(error, request, response);
+      errorHandler('Failed to get location from Cache', error);
     });
 }
+
 
 app.get('/trails', trailHandler);
 
 function trailHandler(request, response) {
-  console.log(request);
   const trailURL = 'https://www.hikingproject.com/data/get-trails';
   superagent.get(trailURL)
     .query({
@@ -130,12 +142,14 @@ function trailHandler(request, response) {
     .then(trailResponse => {
       let trailData = trailResponse.body;
       let availableTrails = trailData.trails.map(trailStats => {
-        console.log(trailData);
         return new Trail(trailStats);
       });
       response.send(availableTrails);
+    })
+    .catch(error => {
+      console.log(error);
+      errorHandler('Could not access trails', error);
     });
-    
 }
 
 
@@ -143,9 +157,6 @@ function trailHandler(request, response) {
 app.use(notFoundHandler);
 // Has to happen after the error might have occurred
 app.use(errorHandler); // Error Middleware
-
-// Make sure the server is listening for requests
-// app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
 
 // Helper Functions
 
