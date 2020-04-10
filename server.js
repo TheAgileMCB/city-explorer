@@ -7,6 +7,8 @@ dotenv.config();
 // Application Dependencies
 const express = require('express');
 const cors = require('cors');
+const PORT = process.env.PORT;
+const app = express();
 
 const client = require('./utilities/db');
 
@@ -14,14 +16,14 @@ const weatherHandler = require('./modules/weather');
 const locationHandler = require('./modules/location');
 const trailHandler = require('./modules/trails');
 
-// Application Setup
-const PORT = process.env.PORT;
-const app = express();
-
 app.use(cors()); // Middleware
 
 app.get('/', (request, response) => {
   response.send('City Explorer Goes Here');
+});
+
+app.get('/movies', (request, response) => {
+  response.send([]);
 });
 
 app.get('/bad', () => {
