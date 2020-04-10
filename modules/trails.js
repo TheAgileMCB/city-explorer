@@ -1,6 +1,8 @@
 'use strict';
 
 const superagent = require('superagent');
+const client = require('../utilities/db');
+
 
 function trailHandler(request, response) {
   const trailURL = 'https://www.hikingproject.com/data/get-trails';

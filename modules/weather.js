@@ -1,6 +1,8 @@
 'use strict';
 
 const superagent = require('superagent');
+const client = require('../utilities/db');
+
 
 
 function weatherHandler(request, response) {

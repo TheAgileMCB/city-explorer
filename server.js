@@ -8,20 +8,12 @@ dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
-const pg = require('pg');
+
+const client = require('./utilities/db');
+
 const weatherHandler = require('./modules/weather');
 const trailHandler = require('./modules/trails');
 
-
-
-
-// Database connection setup
-if (!process.env.DATABASE_URL) {
-  throw 'Missing DATABASE_URL';
-}
-
-const client = new pg.Client(process.env.DATABASE_URL);
-client.on('error', err => { throw err; });
 
 // Application Setup
 const PORT = process.env.PORT;
