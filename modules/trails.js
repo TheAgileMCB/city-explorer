@@ -2,7 +2,7 @@
 
 const superagent = require('superagent');
 const client = require('../utilities/db');
-
+const errorHandler = require('./error');
 
 function trailHandler(request, response) {
   const trailURL = 'https://www.hikingproject.com/data/get-trails';

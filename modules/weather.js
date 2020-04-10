@@ -2,8 +2,7 @@
 
 const superagent = require('superagent');
 const client = require('../utilities/db');
-
-
+const errorHandler = require('./error');
 
 function weatherHandler(request, response) {
   const weatherCity = request.query.search_query;

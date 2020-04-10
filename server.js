@@ -34,8 +34,6 @@ app.get('/trails', trailHandler);
 
 // Has to happen after everything else
 app.use(notFoundHandler);
-// Has to happen after the error might have occurred
-app.use(errorHandler); // Error Middleware
 
 client.connect()
   .then(() => {
@@ -47,15 +45,6 @@ client.connect()
   });
 
 // Helper Functions
-
-function errorHandler(error, request, response, next) {
-  console.log(error);
-  response.status(500).json({
-    error: true,
-    message: error.message,
-  });
-}
-
 function notFoundHandler(request, response) {
   response.status(404).json({
     notFound: true,

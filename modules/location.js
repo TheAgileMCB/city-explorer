@@ -2,9 +2,9 @@
 
 const superagent = require('superagent');
 const client = require('../utilities/db');
+const errorHandler = require('./error');
 
 // Add /location route
-
 function getLocationFromCache(city) {
   const SQL = `
   SELECT *
@@ -39,7 +39,7 @@ function setLocationInCache(location) {
 // Route Handler
 function locationHandler(request, response) {
   const city = request.query.city;
-  getLocationFromCache(city, response)
+  getLocationFromCache(city)
     .then(result => {
       let {rowCount, rows} = result;
       if (rowCount > 0) {
