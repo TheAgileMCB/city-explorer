@@ -9,6 +9,11 @@ const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
 const pg = require('pg');
+const weatherHandler = require('./modules/weather');
+const trailHandler = require('./modules/trails');
+
+
+
 
 // Database connection setup
 if (!process.env.DATABASE_URL) {
@@ -33,30 +38,11 @@ app.get('/bad', () => {
 });
 
 app.get('/weather', weatherHandler);
+app.get('/location', locationHandler);
+app.get('/trails', trailHandler);
 
-function weatherHandler(request, response) {
-  const weatherCity = request.query.search_query;
-  const weatherURL = 'http://api.weatherbit.io/v2.0/forecast/daily';
-  superagent.get(weatherURL)
-    .query({
-      city: weatherCity,
-      key: process.env.WEATHER_KEY
-    })
-    .then(weatherResponse => {
-      let weatherData = weatherResponse.body;
-      let dailyForecast = weatherData.data.map(dailyWeather => {
-        return new Weather(dailyWeather);
-      });
-      response.send(dailyForecast);
-    })
-    .catch(error => {
-      console.log(error);
-      errorHandler('No windows. Cannot see the weather', error);
-    });
-}
 
 // Add /location route
-app.get('/location', locationHandler);
 
 function getLocationFromCache(city) {
   const SQL = `
@@ -116,7 +102,7 @@ function getLocationFromApi(city, response) {
 
       const location = new Location(city, geoData);
 
-      setLocationInCache(location, response)
+      setLocationInCache(location)
         .then(() => {
           console.log('Data cached!');
           response.send(location);
@@ -129,28 +115,8 @@ function getLocationFromApi(city, response) {
 }
 
 
-app.get('/trails', trailHandler);
 
-function trailHandler(request, response) {
-  const trailURL = 'https://www.hikingproject.com/data/get-trails';
-  superagent.get(trailURL)
-    .query({
-      key: process.env.TRAIL_KEY,
-      lat: request.query.latitude,
-      lon: request.query.longitude
-    })
-    .then(trailResponse => {
-      let trailData = trailResponse.body;
-      let availableTrails = trailData.trails.map(trailStats => {
-        return new Trail(trailStats);
-      });
-      response.send(availableTrails);
-    })
-    .catch(error => {
-      console.log(error);
-      errorHandler('Could not access trails', error);
-    });
-}
+
 
 
 // Has to happen after everything else
@@ -174,11 +140,7 @@ function notFoundHandler(request, response) {
   });
 }
 
-function Weather(weatherData) {
-  this.search_query = weatherData.city_name;
-  this.forecast = weatherData.weather.description;
-  this.time = new Date(weatherData.ts * 1000).toDateString();
-}
+
 
 function Location(city, geoData) {
   this.search_query = city; // "cedar rapids"
@@ -187,17 +149,7 @@ function Location(city, geoData) {
   this.longitude = parseFloat(geoData[0].lon);
 }
 
-function Trail(trailData) {
-  this.name = trailData.name;
-  this.location = trailData.location;
-  this.length = trailData.length;
-  this.stars = trailData.stars;
-  this.star_votes = trailData.starVotes;
-  this.summary = trailData.summary;
-  this.trail_url = trailData.url;
-  this.conditions = trailData.conditionDetails;
-  this.condition_date = new Date(trailData.conditionDate).toDateString();
-}
+
 
 client.connect()
   .then(() => {
