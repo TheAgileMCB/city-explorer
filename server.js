@@ -15,6 +15,7 @@ const client = require('./utilities/db');
 const weatherHandler = require('./modules/weather');
 const locationHandler = require('./modules/location');
 const trailHandler = require('./modules/trails');
+const yelpHandler = require('./modules/yelp');
 
 app.use(cors()); // Middleware
 
@@ -33,6 +34,7 @@ app.get('/bad', () => {
 app.get('/weather', weatherHandler);
 app.get('/location', locationHandler);
 app.get('/trails', trailHandler);
+app.get('/yelp', yelpHandler);
 
 // Has to happen after everything else
 app.use(notFoundHandler);
